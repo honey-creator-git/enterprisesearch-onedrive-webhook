@@ -25,32 +25,41 @@ const getAccessToken = async (tenantId, clientId, clientSecret) => {
     }
 };
 
-// Function to recreate OneDrive subscription
-const recreateOneDriveSubscription = async (accessToken, userName) => {
+async function recreateOneDriveSubscription(accessToken, userName) {
+    console.log("Re-creating OneDrive subscription for user:", userName);
+    const subscriptionData = {
+        changeType: "updated", // Listen for all updates (add, update, delete)
+        notificationUrl: process.env.NOTIFICATION_URL,  // URL to receive notifications
+        resource: `users/${userName}/drive/root`,  // Listen for changes in the user's OneDrive
+        expirationDateTime: new Date(Date.now() + 60 * 60 * 1000).toISOString(),  // 1 hour from now
+        clientState: "clientStateValue"  // Optional: any state to track the subscription
+    };
+
+    const graphBaseUrl = "https://graph.microsoft.com/v1.0";
+
     try {
         const response = await axios.post(
-            "https://graph.microsoft.com/v1.0/subscriptions",
-            {
-                "changeType": "created,updated,deleted",
-                "notificationUrl": process.env.NOTIFICATION_URL, // The URL for receiving webhooks
-                "resource": `/users/${userName}/drive/root`,
-                "expirationDateTime": new Date(Date.now() + 3600000).toISOString(), // Expires in 1 hour
-                "clientState": "secretClientValue",
-            },
+            `${graphBaseUrl}/subscriptions`,
+            subscriptionData,
             {
                 headers: {
                     Authorization: `Bearer ${accessToken}`,
-                    "Content-Type": "application/json",
-                },
+                    "Content-Type": "application/json"
+                }
             }
         );
-
+        console.log("Subscription re-created:", response.data);  // Log the response for debugging
         return response.data;
     } catch (error) {
-        console.error("Error creating OneDrive subscription:", error.message);
-        throw new Error("Error creating OneDrive subscription");
+        if (error.response) {
+            console.error("Error response:", error.response.data);  // Log full error response
+            console.error("Error status:", error.response.status);  // Log status code
+        } else {
+            console.error("Error message:", error.message);  // Log message if response is unavailable
+        }
+        throw new Error("Failed to re-create subscription");
     }
-};
+}
 
 // Function to fetch stored credentials from Elasticsearch
 const getStoredCredentials = async () => {
