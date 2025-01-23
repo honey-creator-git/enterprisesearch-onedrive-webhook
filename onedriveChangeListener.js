@@ -78,7 +78,7 @@ const getStoredCredentials = async () => {
                 query: {
                     range: {
                         expirationDateTime: {
-                            lt: "now", // Filter for expired expirationDateTime
+                            lt: new Date().toISOString(), // Filter for expired expirationDateTime
                         },
                     },
                 },
